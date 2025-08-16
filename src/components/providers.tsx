@@ -3,14 +3,25 @@
 import { createClient } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-// Create Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create optional Supabase client - only if environment variables are available
+const createSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null
+  }
+  
+  try {
+    return createClient(supabaseUrl, supabaseAnonKey)
+  } catch (error) {
+    console.warn('Failed to create Supabase client:', error)
+    return null
+  }
+}
 
 // Create context for Supabase client
-const SupabaseContext = createContext(supabase)
+const SupabaseContext = createContext<ReturnType<typeof createSupabaseClient>>(null)
 
 export const useSupabase = () => {
   const context = useContext(SupabaseContext)
@@ -89,7 +100,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<City | null>(cities[0])
 
   return (
-    <SupabaseContext.Provider value={supabase}>
+    <SupabaseContext.Provider value={createSupabaseClient()}>
       <CityContext.Provider value={{ selectedCity, setSelectedCity, cities }}>
         {children}
       </CityContext.Provider>
