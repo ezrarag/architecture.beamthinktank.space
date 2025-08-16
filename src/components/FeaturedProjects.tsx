@@ -114,9 +114,7 @@ export default function FeaturedProjects() {
               {/* 3D Model Placeholder */}
               <div className="relative h-64 bg-gradient-to-br from-beam-primary to-beam-secondary rounded-t-xl overflow-hidden">
                 <Model3D 
-                  type={project.type === 'Mixed-Use' ? 'skyscraper' : 
-                        project.type === 'Community' ? 'community' : 
-                        project.type === 'Commercial' ? 'office' : 'residential'} 
+                  modelPath={`/models/${project.type.toLowerCase()}`}
                   className="w-full h-full"
                 />
                 
