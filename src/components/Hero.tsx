@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { ArrowDown, Building2, Leaf, Users } from 'lucide-react'
 
+// Hero component with beautiful gradient background and stats
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-beam-primary via-beam-secondary to-beam-accent overflow-hidden">
