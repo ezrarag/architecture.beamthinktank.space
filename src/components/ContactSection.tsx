@@ -75,7 +75,7 @@ export default function ContactSection() {
             Get in Touch
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Ready to start your next architectural project? Let's discuss how we can 
+            Ready to start your next architectural project? Let&apos;s discuss how we can 
             bring your vision to life with sustainable, innovative design solutions.
           </p>
         </motion.div>

@@ -15,8 +15,8 @@ module.exports = {
         'beam-light': '#f7fafc',
       },
       fontFamily: {
-        'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'display': ['Playfair Display', 'serif'],
+        'sans': ['var(--font-body)', 'system-ui', 'sans-serif'],
+        'display': ['var(--font-display)', 'serif'],
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
