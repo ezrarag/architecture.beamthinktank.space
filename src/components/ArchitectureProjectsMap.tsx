@@ -6,6 +6,11 @@ import type { ArchitectureProject } from '@/lib/ngoConfig'
 
 type MapMode = 'data' | 'flyin'
 
+type ProjectMapMarker = {
+  setMap: (map: google.maps.Map | null) => void
+  setSelected: (isSelected: boolean) => void
+}
+
 interface ArchitectureProjectsMapProps {
   projects: ArchitectureProject[]
   selectedProjectId: string | null
@@ -43,18 +48,102 @@ function isMappableProject(project: ArchitectureProject) {
   return Number.isFinite(project.lat) && Number.isFinite(project.lng) && !(project.lat === 0 && project.lng === 0)
 }
 
-function buildMarkerIcon(
+function applyProjectMarkerStyles(
+  element: HTMLButtonElement,
   status: ArchitectureProject['status'],
   isSelected: boolean,
-): google.maps.Symbol {
-  return {
-    path: google.maps.SymbolPath.CIRCLE,
-    fillColor: projectStatusMarkerColors[status],
-    fillOpacity: 1,
-    strokeColor: isSelected ? '#edf3ea' : '#0b1712',
-    strokeWeight: isSelected ? 3 : 2,
-    scale: isSelected ? 10 : 7,
+) {
+  const size = isSelected ? 20 : 14
+
+  element.style.position = 'absolute'
+  element.style.left = '0'
+  element.style.top = '0'
+  element.style.width = `${size}px`
+  element.style.height = `${size}px`
+  element.style.padding = '0'
+  element.style.borderRadius = '9999px'
+  element.style.border = `${isSelected ? 3 : 2}px solid ${isSelected ? '#edf3ea' : '#0b1712'}`
+  element.style.backgroundColor = projectStatusMarkerColors[status]
+  element.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.38)'
+  element.style.cursor = 'pointer'
+  element.style.transform = 'translate(-50%, -50%)'
+  element.style.transition =
+    'width 160ms ease, height 160ms ease, border-color 160ms ease, box-shadow 160ms ease'
+  element.style.zIndex = isSelected ? '100' : '1'
+  element.setAttribute('aria-pressed', String(isSelected))
+}
+
+function createProjectMarker({
+  map,
+  position,
+  title,
+  status,
+  isSelected,
+  onClick,
+}: {
+  map: google.maps.Map
+  position: google.maps.LatLngLiteral
+  title: string
+  status: ArchitectureProject['status']
+  isSelected: boolean
+  onClick: () => void
+}): ProjectMapMarker {
+  class ProjectMarkerOverlay extends google.maps.OverlayView {
+    private readonly element: HTMLButtonElement
+    private isSelected: boolean
+
+    constructor() {
+      super()
+
+      this.isSelected = isSelected
+      this.element = document.createElement('button')
+      this.element.type = 'button'
+      this.element.title = title
+      this.element.setAttribute('aria-label', title)
+      this.element.style.appearance = 'none'
+      this.element.style.outline = 'none'
+      applyProjectMarkerStyles(this.element, status, this.isSelected)
+      this.element.addEventListener('click', this.handleClick)
+    }
+
+    draw() {
+      const point = this.getProjection().fromLatLngToDivPixel(position)
+      if (!point) return
+
+      this.element.style.left = `${point.x}px`
+      this.element.style.top = `${point.y}px`
+    }
+
+    onAdd() {
+      const pane = this.getPanes()?.overlayMouseTarget
+      if (!pane) return
+
+      google.maps.OverlayView.preventMapHitsFrom(this.element)
+      pane.appendChild(this.element)
+    }
+
+    onRemove() {
+      this.element.removeEventListener('click', this.handleClick)
+      this.element.remove()
+    }
+
+    setSelected(nextSelected: boolean) {
+      if (this.isSelected === nextSelected) return
+
+      this.isSelected = nextSelected
+      applyProjectMarkerStyles(this.element, status, this.isSelected)
+    }
+
+    private readonly handleClick = (event: MouseEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onClick()
+    }
   }
+
+  const marker = new ProjectMarkerOverlay()
+  marker.setMap(map)
+  return marker
 }
 
 function resolveCenter(projects: ArchitectureProject[]) {
@@ -66,13 +155,13 @@ function resolveCenter(projects: ArchitectureProject[]) {
   }
 }
 
-function ensureMapsLoader(apiKey: string) {
+function ensureMapsLoader(apiKey: string, mapIds: string[]) {
   if (configuredMapsApiKey) return
 
   setOptions({
     key: apiKey,
     v: 'weekly',
-    mapIds: ['DEMO_MAP_ID'],
+    mapIds,
   })
 
   configuredMapsApiKey = apiKey
@@ -88,8 +177,7 @@ export default function ArchitectureProjectsMap({
   const [error, setError] = useState('')
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
-  const markersRef = useRef<Array<{ projectId: string; marker: google.maps.Marker }>>([])
-  const listenersRef = useRef<google.maps.MapsEventListener[]>([])
+  const markersRef = useRef<Array<{ projectId: string; marker: ProjectMapMarker }>>([])
   const onSelectProjectRef = useRef(onSelectProject)
   const selectedProjectIdRef = useRef<string | null>(selectedProjectId)
 
@@ -102,6 +190,7 @@ export default function ArchitectureProjectsMap({
   }, [selectedProjectId])
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() || ''
+  const configuredMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID?.trim() || ''
   const hasApiKey = Boolean(apiKey && apiKey !== 'undefined')
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null
   const selectedMappableProject =
@@ -119,25 +208,21 @@ export default function ArchitectureProjectsMap({
       try {
         setLoading(true)
         setError('')
-        ensureMapsLoader(apiKey)
+        ensureMapsLoader(apiKey, configuredMapId ? [configuredMapId] : ['DEMO_MAP_ID'])
         const nextMappableProjects = projects.filter(isMappableProject)
         const nextSelectedProject =
           projects.find((project) => project.id === selectedProjectIdRef.current) ?? null
         const nextSelectedMappableProject =
           nextSelectedProject && isMappableProject(nextSelectedProject) ? nextSelectedProject : null
 
-        const [{ Map }, { Marker }] = await Promise.all([
-          importLibrary('maps') as Promise<google.maps.MapsLibrary>,
-          importLibrary('marker') as Promise<google.maps.MarkerLibrary>,
-        ])
+        const { Map } = (await importLibrary('maps')) as google.maps.MapsLibrary
 
         if (isCancelled || !containerRef.current) return
 
-        listenersRef.current.forEach((listener) => listener.remove())
-        listenersRef.current = []
         markersRef.current.forEach(({ marker }) => marker.setMap(null))
         markersRef.current = []
 
+        const isFlyinMode = mode === 'flyin'
         const map = new Map(containerRef.current, {
           center: resolveCenter(nextMappableProjects),
           zoom: nextMappableProjects.length > 0 ? 11 : 9,
@@ -148,12 +233,17 @@ export default function ArchitectureProjectsMap({
           clickableIcons: false,
           backgroundColor: '#08110d',
           colorScheme: google.maps.ColorScheme.DARK,
-          styles: mode === 'data' ? mapStyles : undefined,
-          mapId: mode === 'flyin' ? Map.DEMO_MAP_ID : undefined,
-          renderingType: mode === 'flyin' ? google.maps.RenderingType.VECTOR : undefined,
-          tiltInteractionEnabled: mode === 'flyin',
-          headingInteractionEnabled: mode === 'flyin',
-          cameraControl: mode === 'flyin',
+          tiltInteractionEnabled: isFlyinMode,
+          headingInteractionEnabled: isFlyinMode,
+          cameraControl: isFlyinMode,
+          ...(isFlyinMode
+            ? {
+                mapId: configuredMapId || Map.DEMO_MAP_ID,
+                renderingType: google.maps.RenderingType.VECTOR,
+              }
+            : {
+                styles: mapStyles,
+              }),
         })
 
         mapRef.current = map
@@ -182,19 +272,16 @@ export default function ArchitectureProjectsMap({
         }
 
         markersRef.current = nextMappableProjects.map((project) => {
-          const marker = new Marker({
+          const marker = createProjectMarker({
             map,
             position: { lat: project.lat, lng: project.lng },
             title: project.title,
-            icon: buildMarkerIcon(project.status, project.id === selectedProjectIdRef.current),
-            zIndex: project.id === selectedProjectIdRef.current ? 100 : 1,
-          })
-
-          listenersRef.current.push(
-            marker.addListener('click', () => {
+            status: project.status,
+            isSelected: project.id === selectedProjectIdRef.current,
+            onClick: () => {
               onSelectProjectRef.current(project.id)
-            }),
-          )
+            },
+          })
 
           return { projectId: project.id, marker }
         })
@@ -212,13 +299,11 @@ export default function ArchitectureProjectsMap({
 
     return () => {
       isCancelled = true
-      listenersRef.current.forEach((listener) => listener.remove())
-      listenersRef.current = []
       markersRef.current.forEach(({ marker }) => marker.setMap(null))
       markersRef.current = []
       mapRef.current = null
     }
-  }, [apiKey, hasApiKey, mode, projects])
+  }, [apiKey, configuredMapId, hasApiKey, mode, projects])
 
   useEffect(() => {
     if (!mapRef.current) return
@@ -229,8 +314,7 @@ export default function ArchitectureProjectsMap({
       const project = nextMappableProjects.find((candidate) => candidate.id === projectId)
       if (!project) return
 
-      marker.setIcon(buildMarkerIcon(project.status, projectId === selectedProjectId))
-      marker.setZIndex(projectId === selectedProjectId ? 100 : 1)
+      marker.setSelected(projectId === selectedProjectId)
     })
 
     if (mode === 'flyin' && selectedMappableProject) {

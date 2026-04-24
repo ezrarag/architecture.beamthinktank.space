@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
@@ -28,6 +30,7 @@ const statusBadgeStyles: Record<
 }
 
 export default function ProjectsPage() {
+  const searchParams = useSearchParams()
   const { user, signIn } = useAuth()
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     architectureProjects[0]?.id ?? null,
@@ -35,6 +38,7 @@ export default function ProjectsPage() {
   const [submittingProjectId, setSubmittingProjectId] = useState<string | null>(null)
   const [mappedProjectIds, setMappedProjectIds] = useState<Set<string>>(() => new Set())
   const [errorMessage, setErrorMessage] = useState('')
+  const workspaceMessage = searchParams.get('message')
 
   const selectedProject = useMemo(
     () => architectureProjects.find((project) => project.id === selectedProjectId) ?? null,
@@ -142,6 +146,10 @@ export default function ProjectsPage() {
             </div>
           ) : null}
 
+          {workspaceMessage ? (
+            <div className="success-box mt-6">{workspaceMessage}</div>
+          ) : null}
+
           {errorMessage ? (
             <div className="mt-6 rounded-[1.5rem] border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-800">
               {errorMessage}
@@ -222,6 +230,11 @@ export default function ProjectsPage() {
                     >
                       View on map
                     </button>
+                    {user ? (
+                      <Link className="cta-secondary" href={`/workspace/${project.id}`}>
+                        Open workspace
+                      </Link>
+                    ) : null}
                   </div>
                 </article>
               )

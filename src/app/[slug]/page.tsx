@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PageTemplate from '@/components/PageTemplate'
 import { isPageSlug, pageSlugs, pagesBySlug } from '@/content/beamArchitecture'
+import { getArchitectureProjectBySlug } from '@/lib/architectureWorkspace'
 
 interface SitePageProps {
   params: {
@@ -31,5 +32,19 @@ export default function SitePage({ params }: SitePageProps) {
     notFound()
   }
 
-  return <PageTemplate page={pagesBySlug[params.slug]} />
+  const workspaceProject = getArchitectureProjectBySlug(params.slug)
+
+  return (
+    <PageTemplate
+      page={pagesBySlug[params.slug]}
+      workspaceProject={
+        workspaceProject
+          ? {
+              id: workspaceProject.id,
+              title: workspaceProject.title,
+            }
+          : undefined
+      }
+    />
+  )
 }

@@ -2,9 +2,18 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import IntakeForms from '@/components/IntakeForms'
+import WorkspaceLaunchPanel from '@/components/workspace/WorkspaceLaunchPanel'
 import { corePageLinks, type SitePage } from '@/content/beamArchitecture'
 
-export default function PageTemplate({ page }: { page: SitePage }) {
+interface PageTemplateProps {
+  page: SitePage
+  workspaceProject?: {
+    id: string
+    title: string
+  }
+}
+
+export default function PageTemplate({ page, workspaceProject }: PageTemplateProps) {
   const relatedPages = corePageLinks.filter((link) => link.href !== page.href && link.href !== '/').slice(0, 4)
 
   return (
@@ -89,6 +98,13 @@ export default function PageTemplate({ page }: { page: SitePage }) {
       ) : null}
 
       {page.showForms && page.formLead ? <IntakeForms lead={page.formLead} /> : null}
+
+      {workspaceProject ? (
+        <WorkspaceLaunchPanel
+          projectId={workspaceProject.id}
+          projectTitle={workspaceProject.title}
+        />
+      ) : null}
 
       <section className="pb-20">
         <div className="site-frame">
