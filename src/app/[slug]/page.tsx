@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PageTemplate from '@/components/PageTemplate'
 import { isPageSlug, pageSlugs, pagesBySlug } from '@/content/beamArchitecture'
-import { getArchitectureProjectBySlug } from '@/lib/architectureWorkspace'
+import { getArchitectureProjectBySlug } from '@/lib/architectureData'
+import ProjectRecordPage from '@/components/ProjectRecordPage'
 
 interface SitePageProps {
   params: {
@@ -33,6 +34,10 @@ export default function SitePage({ params }: SitePageProps) {
   }
 
   const workspaceProject = getArchitectureProjectBySlug(params.slug)
+
+  if (params.slug === 'central-umc') {
+    return <ProjectRecordPage projectId="central-umc" />
+  }
 
   return (
     <PageTemplate

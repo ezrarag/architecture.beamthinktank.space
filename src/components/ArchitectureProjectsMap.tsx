@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
-import type { ArchitectureProject } from '@/lib/ngoConfig'
+import type { ArchitecturePropertyView } from '@/lib/ngoConfig'
 
 type MapMode = 'data' | 'flyin'
 
@@ -12,7 +12,7 @@ type ProjectMapMarker = {
 }
 
 interface ArchitectureProjectsMapProps {
-  projects: ArchitectureProject[]
+  projects: ArchitecturePropertyView[]
   selectedProjectId: string | null
   onSelectProject: (id: string) => void
 }
@@ -36,21 +36,22 @@ const mapStyles: google.maps.MapTypeStyle[] = [
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#5c7768' }] },
 ]
 
-const projectStatusMarkerColors: Record<ArchitectureProject['status'], string> = {
+const projectStatusMarkerColors: Record<ArchitecturePropertyView['status'], string> = {
   open: '#c8b99a',
   active: '#88aa8f',
   completed: '#555',
+  unassigned: '#557180',
 }
 
 let configuredMapsApiKey: string | null = null
 
-function isMappableProject(project: ArchitectureProject) {
+function isMappableProject(project: ArchitecturePropertyView) {
   return Number.isFinite(project.lat) && Number.isFinite(project.lng) && !(project.lat === 0 && project.lng === 0)
 }
 
 function applyProjectMarkerStyles(
   element: HTMLButtonElement,
-  status: ArchitectureProject['status'],
+  status: ArchitecturePropertyView['status'],
   isSelected: boolean,
 ) {
   const size = isSelected ? 20 : 14
@@ -84,7 +85,7 @@ function createProjectMarker({
   map: google.maps.Map
   position: google.maps.LatLngLiteral
   title: string
-  status: ArchitectureProject['status']
+  status: ArchitecturePropertyView['status']
   isSelected: boolean
   onClick: () => void
 }): ProjectMapMarker {
@@ -146,7 +147,7 @@ function createProjectMarker({
   return marker
 }
 
-function resolveCenter(projects: ArchitectureProject[]) {
+function resolveCenter(projects: ArchitecturePropertyView[]) {
   if (!projects.length) return fallbackCenter
 
   return {

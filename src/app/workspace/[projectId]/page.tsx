@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import ProjectWorkspaceClient from '@/components/workspace/ProjectWorkspaceClient'
-import { getArchitectureProjectById } from '@/lib/architectureWorkspace'
+import { getArchitectureProjectById } from '@/lib/architectureData'
 
 interface ProjectWorkspacePageProps {
   params: {

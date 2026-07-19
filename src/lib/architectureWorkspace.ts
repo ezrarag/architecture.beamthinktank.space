@@ -1,4 +1,5 @@
-import { architectureProjects, type ArchitectureProject } from './ngoConfig'
+import { type ArchitectureProject } from './ngoConfig'
+import { getArchitectureProjectById, getArchitectureProjectBySlug } from './architectureData'
 
 export type GrantStatus = 'draft' | 'submitted' | 'awarded' | 'declined' | 'pending'
 export type BudgetPaymentMethod = 'equity_formula' | 'stipend' | 'grant_direct'
@@ -158,14 +159,6 @@ export const workspaceTabs: WorkspaceTabDefinition[] = [
   { id: 'meetings', label: 'Meetings', shortLabel: 'Meetings' },
   { id: 'invite', label: 'Invite', shortLabel: 'Invite' },
 ]
-
-export function getArchitectureProjectById(projectId: string) {
-  return architectureProjects.find((project) => project.id === projectId) ?? null
-}
-
-export function getArchitectureProjectBySlug(slug: string) {
-  return architectureProjects.find((project) => project.slug === slug) ?? null
-}
 
 export function createWorkspaceItemId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`

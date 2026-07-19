@@ -38,7 +38,6 @@ import { useAuth } from '@/lib/authContext'
 import {
   createWorkspaceItemId,
   createWorkspaceSeed,
-  getArchitectureProjectById,
   getFinanceNgoUrl,
   projectSeedIncludesEmail,
   workspaceIncludesUser,
@@ -54,6 +53,7 @@ import {
   type WorkspaceTabId,
   type WorkspaceTodo,
 } from '@/lib/architectureWorkspace'
+import { getArchitectureProjectById } from '@/lib/architectureData'
 import { db } from '@/lib/firebase'
 import { ngoConfig, type ArchitectureProject, type NGORole } from '@/lib/ngoConfig'
 
@@ -2191,7 +2191,7 @@ export default function ProjectWorkspaceClient({ projectId }: { projectId: strin
                 <Link className="cta-primary" href="/projects">
                   Return to projects
                 </Link>
-                <Link className="cta-secondary" href={`/${activeProject.slug}`}>
+                <Link className="cta-secondary" href={`/properties/${activeProject.slug}`}>
                   View public page
                 </Link>
               </div>

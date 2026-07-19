@@ -220,7 +220,7 @@ export default function WorkspaceIndexClient() {
                     <Link className="cta-primary" href={`/workspace/${project.id}`}>
                       Open workspace
                     </Link>
-                    <Link className="cta-secondary" href={`/${project.slug}`}>
+                    <Link className="cta-secondary" href={`/properties/${project.slug}`}>
                       Public page
                     </Link>
                   </div>
